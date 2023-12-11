@@ -1,21 +1,42 @@
-﻿using TicketingSolution.Core;
-using TicketingSolution.Core.DataServices;
+﻿using TicketingSolution.Core.DataServices;
+using TicketingSolution.Core.Domain;
+using TicketingSolution.Core.Models;
 
 namespace TicketingSolution.Core.Handlers;
 
 public class TicketBookingRequestHandler
 {
-    public TicketBookingRequestHandler(ITicketBookingService @object)
+    private readonly ITicketBookingService _ticketBookingService;
+
+    public TicketBookingRequestHandler(ITicketBookingService ticketBookingService)
     {
+        _ticketBookingService = ticketBookingService;
     }
 
-    public ServiceBookingResult ServiceBooking(TicketBookingRequest bookingRequest)
+    public TicketBookingResult ServiceBooking(TicketBookingRequest bookingRequest)
     {
-        if(bookingRequest is null)
+        if (bookingRequest is null)  
         {
             throw new ArgumentNullException(nameof(bookingRequest));
         }
-        return new ServiceBookingResult
+
+        var availableTickets = _ticketBookingService.GetAvailableTickets(bookingRequest.Date);
+
+        if (availableTickets.Any())
+        {
+            var ticket = availableTickets.First();
+            var ticketBooking = CreateTicketBookingObject<TicketBooking>(bookingRequest);
+            ticketBooking.TicketId = ticket.Id;
+            _ticketBookingService.Save(ticketBooking);
+        }
+
+        return CreateTicketBookingObject<TicketBookingResult>(bookingRequest);
+
+    }
+    private static TEntity CreateTicketBookingObject<TEntity>(TicketBookingRequest bookingRequest)
+        where TEntity : TicketBookingBase, new()
+    {
+        return new TEntity
         {
             Name = bookingRequest.Name,
             Family = bookingRequest.Family,

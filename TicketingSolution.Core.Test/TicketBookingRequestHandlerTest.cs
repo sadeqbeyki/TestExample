@@ -12,6 +12,7 @@ namespace TicketingSolution.Core.Test
         private readonly Mock<ITicketBookingService> _ticketBookingServiceMock;
         private readonly TicketBookingRequestHandler _handler;
         private readonly TicketBookingRequest _bookingRequest;
+        private List<Ticket> _availableTickets;
 
         public TicketBookingRequestHandlerTest()
         {
@@ -21,10 +22,15 @@ namespace TicketingSolution.Core.Test
             {
                 Name = "Test Name",
                 Family = "Test Family",
-                Email = "Test Email"
+                Email = "Test Email",
+                Date = DateTime.Now,
             };
 
+            _availableTickets = new List<Ticket>() { new Ticket() { Id = 1 } };
             _ticketBookingServiceMock = new Mock<ITicketBookingService>();
+            _ticketBookingServiceMock.Setup(q => q.GetAvailableTickets(_bookingRequest.Date))
+                .Returns(_availableTickets);
+
             _handler = new TicketBookingRequestHandler(_ticketBookingServiceMock.Object);
         }
 
@@ -32,7 +38,7 @@ namespace TicketingSolution.Core.Test
         public void ShouldReturnTicketBookingResponseWithRequestValues()
         {
             //Act
-            ServiceBookingResult Result = _handler.ServiceBooking(_bookingRequest);
+            TicketBookingResult Result = _handler.ServiceBooking(_bookingRequest);
 
             //Assert
             //Assert.NotNull(Result);
@@ -53,11 +59,12 @@ namespace TicketingSolution.Core.Test
             var exception = Should.Throw<ArgumentNullException>(() => _handler.ServiceBooking(null));
             exception.ParamName.ShouldBe("bookingRequest");
         }
+
         [Fact]
         public void ShouldSaveTicketBookingRequest()
         {
             TicketBooking savedBooking = null;
-            _ticketBookingServiceMock.Setup(x => x.Save(It.IsAny<TicketBooking>()))
+            var result = _ticketBookingServiceMock.Setup(x => x.Save(It.IsAny<TicketBooking>()))
                     .Callback<TicketBooking>(booking =>
                     {
                         savedBooking = booking;
@@ -69,6 +76,15 @@ namespace TicketingSolution.Core.Test
             savedBooking.Name.ShouldBe(_bookingRequest.Name);
             savedBooking.Family.ShouldBe(_bookingRequest.Family);
             savedBooking.Email.ShouldBe(_bookingRequest.Email);
+            savedBooking.TicketId.ShouldBe(_availableTickets.First().Id);
+        }
+
+        [Fact]
+        public void ShouldNotSaveTicketBookingRequestIfNoneAvailable()
+        {
+            _availableTickets.Clear();
+            _handler.ServiceBooking(_bookingRequest);
+            _ticketBookingServiceMock.Verify(x => x.Save(It.IsAny<TicketBooking>()), Times.Never);
         }
     }
 }

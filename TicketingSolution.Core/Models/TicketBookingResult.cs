@@ -2,6 +2,6 @@
 
 namespace TicketingSolution.Core;
 
-public class TicketBookingRequest : TicketBookingBase
+public class TicketBookingResult : TicketBookingBase
 {
 }
