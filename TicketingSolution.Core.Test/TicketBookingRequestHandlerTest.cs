@@ -3,6 +3,7 @@ using Shouldly;
 using System.Net.Sockets;
 using TicketingSolution.Core.DataServices;
 using TicketingSolution.Core.Domain;
+using TicketingSolution.Core.Enums;
 using TicketingSolution.Core.Handlers;
 
 namespace TicketingSolution.Core.Test
@@ -85,6 +86,19 @@ namespace TicketingSolution.Core.Test
             _availableTickets.Clear();
             _handler.ServiceBooking(_bookingRequest);
             _ticketBookingServiceMock.Verify(x => x.Save(It.IsAny<TicketBooking>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData(BookingResultFlag.Failure,false)]
+        [InlineData(BookingResultFlag.Success,true)]
+        public void ShouldReturnSuccessOrFailureFlagInResult(BookingResultFlag bookingSuccessFlag,bool isAvailable)
+        {
+            if(!isAvailable)
+            {
+                _availableTickets.Clear();
+            }
+            var result = _handler.ServiceBooking(_bookingRequest);
+            bookingSuccessFlag.ShouldBe(result.Flag);
         }
     }
 }
